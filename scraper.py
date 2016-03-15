@@ -28,6 +28,7 @@ class PttScraper(requests.Session):
         url = 'https://www.ptt.cc/bbs/Gossiping/M.1457406335.A.0BA.html'
         url = 'https://www.ptt.cc/bbs/Gossiping/M.1447465330.A.B9F.html'
         url = 'https://www.ptt.cc/bbs/Gossiping/M.1446024184.A.346.html'
+        url = 'https://www.ptt.cc/bbs/Gossiping/M.1452096019.A.D0A.html'
 
     # well-formatted ariticle::
         url = 'https://www.ptt.cc/bbs/Gossiping/M.1452164857.A.979.html'
@@ -366,19 +367,20 @@ class Coder(Jieba):
             return buffer.getvalue()
 
     def summary(self, content, file=None):
-        tokens = self.seg(re.sub('\n+', ' ', content), False).raw
-        types = set(tokens)
-        counter = Counter(tokens)
-        wfqtable = sorted(counter.items(), key=itemgetter(1), reverse=True)
-        summary = {
-            'token': len(tokens),
-            'type': len(types),
-            'wortfreq': wfqtable
-        }
-        if file:
-            with open(file, 'w') as f:
-                json.dump(summary, f)
-                logger.info('Created json summary at "{}"'.\
-                    format(os.path.basename(file)))
-        else:
-            return summary
+        if not p.content:
+            tokens = self.seg(re.sub('\n+', ' ', content), False).raw
+            types = set(tokens)
+            counter = Counter(tokens)
+            wfqtable = sorted(counter.items(), key=itemgetter(1), reverse=True)
+            summary = {
+                'token': len(tokens),
+                'type': len(types),
+                'wortfreq': wfqtable
+            }
+            if file:
+                with open(file, 'w') as f:
+                    json.dump(summary, f)
+                    logger.info('Created json summary at "{}"'.\
+                        format(os.path.basename(file)))
+            else:
+                return summary
