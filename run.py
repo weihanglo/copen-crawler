@@ -18,6 +18,9 @@ os.makedirs(CORPUS_PATH, exist_ok=True)
 fh = logging.FileHandler(os.path.join(CORPUS_PATH, PREFIX + '.log'))
 fh.setLevel(logging.DEBUG)
 
+logger = logging.getLogger()
+logger.addHandler(fh)
+
 def unique(seq):
     seen = set()
     seen_add = seen.add
@@ -47,11 +50,15 @@ def main():
         count += 1
         file = os.path.join(CORPUS_PATH, PREFIX + '{:06d}.vrt'.format(count))
 
-        parser.fetch_html(url)
-        parser.extract_meta()
-        parser.extract_content()
-        parser.extract_news_meta()
-        parser.content = parser.clean(parser.content, True, True, True)
+        try:
+            parser.fetch_html(url)
+            parser.extract_meta()
+            parser.extract_content()
+            parser.extract_news_meta()
+            parser.content = parser.clean(parser.content, True, True, True)
+        except:
+            logger.error('Unexpected error while parsing: {}'.\
+                format(sys.exc_info()))
 
         found = False
         for idiom in idioms:
@@ -60,14 +67,16 @@ def main():
                 break
 
         if found:
-            coder.print_vrt(parser.content, parser.meta, sent_sep, file)
-            coder.summary(parser.content, file.replace('.vrt', '.json'))
+            try:
+                coder.print_vrt(parser.content, parser.meta, sent_sep, file)
+                coder.summary(parser.content, file.replace('.vrt', '.json'))
+            except:
+                logger.error('Unexpected error while coding: {}'.\
+                    format(sys.exc_info()))
         else:
             count -= 1
 
 if __name__ == '__main__':
-    logger = logging.getLogger()
-    logger.addHandler(fh)
     logger.debug('Started at {}'.format(time.strftime('%Y-%m-%d %X')))
     main()
     logger.debug('Finished at {}'.format(time.strftime('%Y-%m-%d %X')))

@@ -367,7 +367,7 @@ class Coder(Jieba):
             return buffer.getvalue()
 
     def summary(self, content, file=None):
-        if not content:
+        if content:
             tokens = self.seg(re.sub('\n+', ' ', content), False).raw
             types = set(tokens)
             counter = Counter(tokens)
