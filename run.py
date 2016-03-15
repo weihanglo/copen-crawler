@@ -22,7 +22,7 @@ def main():
     conn = scraper.PttConnector()
     conn.crawl_links(8000, 99999999, 15, 2)
     links = set(conn.links)
-    with open(os.path.join(CORPUS_PATH, PREFIX + '.links'), 'w') as f:
+    with open(os.path.join(CORPUS_PATH, PREFIX + '.links'), 'a') as f:
         for link in links:
             print(link, file=f)
 
