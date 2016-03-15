@@ -50,8 +50,8 @@ class PttScraper(requests.Session):
         <div\sid="main-content".*meta-value">
         .*?</div>
         (.*?)
-        (?:\n--\n.*?)?
-        --\n.*?<span[^>]*>※\s發信站
+        (?:\n-+?\n.*?)?
+        -+?\n.*?<span[^>]*>※\s發信站
         """, re.DOTALL | re.VERBOSE)
     _re_news_meta_in_content = re.compile(r"""
         \d\.媒體來源:                   (?P<media>.*)
@@ -107,8 +107,11 @@ class PttScraper(requests.Session):
         return self.meta
 
     def extract_content(self):
-        matches = self._re_content.search(self.html)
-        self.content = matches.group(1)
+        match = self._re_content.search(self.html)
+        if match:
+            self.content = match.group(1)
+        else:
+            logger.error('ExtractContentError at {}'.format(self.url))
         return self.content
 
     def extract_news_meta(self):
@@ -356,7 +359,7 @@ class Coder(Jieba):
         if file:
             with open(file, 'w') as f:
                 f.write(buffer.getvalue())
-                logger.debug('Created vrt document at {}'.\
+                logger.info('Created vrt document at {}'.\
                     format(time.strftime('%Y-%m-%d %X')))
         else:
             return buffer.getvalue()
@@ -374,7 +377,7 @@ class Coder(Jieba):
         if file:
             with open(file, 'w') as f:
                 json.dump(summary, f)
-                logger.debug('Created json summary at {}'.\
+                logger.info('Created json summary at {}'.\
                     format(time.strftime('%Y-%m-%d %X')))
         else:
             return summary
