@@ -86,7 +86,7 @@ class PttScraper(requests.Session):
         for match in matches:
             key = {
                 '作者': 'author',
-                '看板': 'ptt_board',
+                '看板': 'board',
                 '標題': 'ptt_title',
                 '時間': 'date',
             }[match[0]]

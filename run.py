@@ -20,7 +20,7 @@ fh.setLevel(logging.DEBUG)
 
 def main():
     conn = scraper.PttConnector()
-    conn.crawl_links(7803, 30, 10)
+    conn.crawl_links(7803, 999999, 20)
     parser = scraper.PttScraper()
 
     coder = scraper.Coder()
@@ -32,8 +32,10 @@ def main():
     count = len(glob.glob(os.path.join(CORPUS_PATH, PREFIX + '*.vrt')))
 
     for url in conn.links:
+        if not count % 30:
+            time.sleep(2)
         count += 1
-        file = os.path.join(CORPUS_PATH, PREFIX + '{:05d}.vrt'.format(count))
+        file = os.path.join(CORPUS_PATH, PREFIX + '{:06d}.vrt'.format(count))
 
         parser.fetch_html(url)
         parser.extract_meta()
