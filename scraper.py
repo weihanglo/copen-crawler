@@ -27,9 +27,10 @@ class PttScraper(requests.Session):
     # unformatted article::
         url = 'https://www.ptt.cc/bbs/Gossiping/M.1457406335.A.0BA.html'
         url = 'https://www.ptt.cc/bbs/Gossiping/M.1447465330.A.B9F.html'
+        url = 'https://www.ptt.cc/bbs/Gossiping/M.1446024184.A.346.html'
 
     # well-formatted ariticle::
-        url  = 'https://www.ptt.cc/bbs/Gossiping/M.1452164857.A.979.html'
+        url = 'https://www.ptt.cc/bbs/Gossiping/M.1452164857.A.979.html'
         url = 'http://www.ptt.cc/bbs/Gossiping/M.1452169410.A.DFD.html'
 
         p = PttScraper()
@@ -97,7 +98,7 @@ class PttScraper(requests.Session):
         self.meta.update({
             'author': re.sub(r'\s\(.*$', '', author if author else ''),
             'date': time.strftime('%Y-%m-%d', \
-                time.strptime(date, '%a %b %d %X %Y')),
+                time.strptime(date, '%a %b %d %X %Y')) if date else '',
             'article_type': 'news',
             'source': 'PTT',
             'gender': '',
@@ -111,6 +112,7 @@ class PttScraper(requests.Session):
         if match:
             self.content = match.group(1)
         else:
+            self.content = ''
             logger.error('ExtractContentError at {}'.format(self.url))
         return self.content
 
@@ -320,7 +322,7 @@ class Coder(Jieba):
         if file:
             meta['id'] = os.path.basename(file)
         meta_tag = '<text {}>'.format(' '.join(['{}="{}"'.\
-                format(k, v) for k, v in meta.items()]))
+            format(k, v) for k, v in meta.items()]))
 
         return meta_tag
 
@@ -353,7 +355,6 @@ class Coder(Jieba):
                         buffer.write(self._seg_sentence(sentence, True))
                         buffer.write('\n')
                 buffer.write('</p>\n')
-
         buffer.write('</text>')
 
         if file:
