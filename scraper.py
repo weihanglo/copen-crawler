@@ -360,7 +360,7 @@ class Coder(Jieba):
             with open(file, 'w') as f:
                 f.write(buffer.getvalue())
                 logger.info('Created vrt document at {}'.\
-                    format(time.strftime('%Y-%m-%d %X')))
+                    format(os.path.basename(file)))
         else:
             return buffer.getvalue()
 
@@ -377,7 +377,7 @@ class Coder(Jieba):
         if file:
             with open(file, 'w') as f:
                 json.dump(summary, f)
-                logger.info('Created json summary at {}'.\
-                    format(time.strftime('%Y-%m-%d %X')))
+                logger.info('Created json summary at "{}"'.\
+                    format(os.path.basename(file)))
         else:
             return summary
