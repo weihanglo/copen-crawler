@@ -18,6 +18,11 @@ os.makedirs(CORPUS_PATH, exist_ok=True)
 fh = logging.FileHandler(os.path.join(CORPUS_PATH, PREFIX + '.log'))
 fh.setLevel(logging.DEBUG)
 
+def unique(seq):
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
+
 def main():
     conn = scraper.PttConnector()
     conn.crawl_links(8000, 99999999, 15, 2)
