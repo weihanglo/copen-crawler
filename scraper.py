@@ -26,10 +26,10 @@ class PttScraper(requests.Session):
     --------
     # unformatted article::
         url = 'https://www.ptt.cc/bbs/Gossiping/M.1457406335.A.0BA.html'
+        url = 'https://www.ptt.cc/bbs/Gossiping/M.1447465330.A.B9F.html'
 
     # well-formatted ariticle::
         url  = 'https://www.ptt.cc/bbs/Gossiping/M.1452164857.A.979.html'
-
         url = 'http://www.ptt.cc/bbs/Gossiping/M.1452169410.A.DFD.html'
 
         p = PttScraper()
@@ -51,7 +51,7 @@ class PttScraper(requests.Session):
         .*?</div>
         (.*?)
         (?:\n--\n.*?)?
-        \n--\n<span[^>]*>※\s發信站
+        --\n.*?<span[^>]*>※\s發信站
         """, re.DOTALL | re.VERBOSE)
     _re_news_meta_in_content = re.compile(r"""
         \d\.媒體來源:                   (?P<media>.*)
@@ -169,7 +169,7 @@ class PttConnector(requests.Session):
     """
     Usage::
         conn = PttConnector()
-        conn.crawl_links(10000, 50000, 200)
+        conn.crawl_links(10000, 50000, 200, 3)
 
     """
     _baseurl = 'http://www.ptt.cc'
@@ -196,7 +196,7 @@ class PttConnector(requests.Session):
                 format(url, sys.exc_info()))
         return nlinks
 
-    def crawl_links(self, index, maxlinks, interval):
+    def crawl_links(self, index, maxlinks, interval, sleep_sec=2):
         _cum_nlinks = 0
         while index > 0:
             url = self._baseurl + self._url_fmt.format(index)
@@ -211,10 +211,10 @@ class PttConnector(requests.Session):
             if _cum_nlinks >= interval:
                 logger.debug('Crawled {} links'.format(_cum_nlinks))
                 _cum_nlinks = 0
-                time.sleep(3)
+                time.sleep(sleep_sec)
 
-            if len(self.links) >= maxlinks:
-                logger.debug('Totally Crawled {} links'.\
+            if len(self.links) >= maxlinks or not index > 0:
+                logger.debug('Totally crawled {} links'.\
                     format(len(self.links)))
                 break
 
