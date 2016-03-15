@@ -20,10 +20,14 @@ fh.setLevel(logging.DEBUG)
 
 def main():
     conn = scraper.PttConnector()
-    conn.crawl_links(7803, 999999, 20)
-    parser = scraper.PttScraper()
+    conn.crawl_links(8000, 99999999, 15)
+    links = set(conn.links)
+    with open(os.path.join(CORPUS_PATH, PREFIX + '.links'), 'w') as f:
+        f.writelines(links)
 
+    parser = scraper.PttScraper()
     coder = scraper.Coder()
+
     with open(os.path.join(CUR_PATH, 'idioms_4word.txt')) as f:
         idioms = f.read().splitlines()
     coder.add_guaranteed_wordlist(idioms)
@@ -31,9 +35,9 @@ def main():
 
     count = len(glob.glob(os.path.join(CORPUS_PATH, PREFIX + '*.vrt')))
 
-    for url in conn.links:
-        if not count % 30:
-            time.sleep(2)
+    for url in links:
+        if not count % 15:
+            time.sleep(3)
         count += 1
         file = os.path.join(CORPUS_PATH, PREFIX + '{:06d}.vrt'.format(count))
 

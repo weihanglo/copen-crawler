@@ -182,30 +182,40 @@ class PttConnector(requests.Session):
         self.links = []
 
     def _get_links(self, url):
+        nlinks = 0
         try:
             res = self.get(url)
             dom = PyQuery(res.text)
             a_tags = dom(self._css_selector)
-            self.links.extend([self._baseurl + a.attrib['href'] \
-                for a in a_tags if re.match(r'^\[新聞]', a.text)])
+            links = [self._baseurl + a.attrib['href'] \
+                for a in a_tags if re.match(r'^\[新聞]', a.text)]
+            self.links.extend(links)
+            nlinks = len(links)
         except:
             logger.error('GetLinksError at {} : {}'.\
                 format(url, sys.exc_info()))
+        return nlinks
 
     def crawl_links(self, index, maxlinks, interval):
-        a = index
-        while index != -1:
-            url = self._baseurl + self._url_fmt.format(a)
+        _cum_nlinks = 0
+        while index > 0:
+            url = self._baseurl + self._url_fmt.format(index)
             try:
-                self._get_links(url)
+                nlinks = self._get_links(url)
+                _cum_nlinks += nlinks
             except:
                 logger.error('CrawlError at {} : {}'.\
                     format(url, sys.exc_info()))
-            a -= 1
-            if not len(self.links) % interval:
-                time.sleep(2)
+            index -= 1
+
+            if _cum_nlinks >= interval:
+                logger.debug('Crawled {} links'.format(_cum_nlinks))
+                _cum_nlinks = 0
+                time.sleep(3)
+
             if len(self.links) >= maxlinks:
-                logger.debug('Crawling {} links'.format(len(self.links)))
+                logger.debug('Totally Crawled {} links'.\
+                    format(len(self.links)))
                 break
 
 class Coder(Jieba):
