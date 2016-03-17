@@ -28,10 +28,9 @@ def unique(seq):
 
 def main():
     conn = scraper.PttConnector()
-    conn.crawl_links(8000, 99999999, 15, 2)
-    links = set(conn.links)
+    conn.crawl_links(8000, 99999999, 20, 3.5)
     with open(os.path.join(CORPUS_PATH, PREFIX + '.links'), 'a') as f:
-        for link in links:
+        for link in conn.links:
             print(link, file=f)
 
     parser = scraper.PttScraper()
@@ -44,7 +43,7 @@ def main():
 
     count = len(glob.glob(os.path.join(CORPUS_PATH, PREFIX + '*.vrt')))
 
-    for url in links:
+    for url in conn.links:
         if not count % 20:
             time.sleep(6)
         count += 1
