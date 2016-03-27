@@ -20,7 +20,7 @@ from pyquery import PyQuery
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class PttScraper:
+class PttScraper(object):
     """A scraper for ptt news
 
     Examples
@@ -174,7 +174,7 @@ class PttScraper:
 
 class PTTMongo(PttScraper):
     def __init__(self):
-        super().__init__()
+        super(PTTMongo, self).__init__()
         self.meta = {
             'media': '',
             'news_title': '',
@@ -213,7 +213,7 @@ class PttConnector(requests.Session):
     _url_fmt = '/bbs/Gossiping/index{}.html'
 
     def __init__(self):
-        super().__init__()
+        super(PttConnector, self).__init__()
         self.cookies.set(name='over18', value='1')
         self.links = []
 
@@ -279,7 +279,7 @@ class Coder(Jieba):
         super(Coder, self).__init__(*args, **kwargs)
 
     @staticmethod
-    def multisplit(string, *delims, keep=0, maxsplit=0, flags=0):
+    def multisplit(string, keep=0, maxsplit=0, flags=0, *delims):
         """Multisplit version of re.split.
         A static method that providing spliting string with multiple delimiters
         and other features.
