@@ -9,6 +9,7 @@ import sys
 import time
 import json
 from collections import Counter
+from datetime import datetime
 from operator import itemgetter
 
 import requests
@@ -19,7 +20,7 @@ from pyquery import PyQuery
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class PttScraper(requests.Session):
+class PttScraper:
     """A scraper for ptt news
 
     Examples
@@ -64,8 +65,8 @@ class PttScraper(requests.Session):
         """, re.DOTALL | re.VERBOSE)
 
     def __init__(self):
-        super().__init__()
-        self.cookies.set(name='over18', value='1')
+        self.session = requests.Session()
+        self.session.cookies.set(name='over18', value='1')
         self.url = None
         self.html = None
         self.meta = {}
@@ -76,7 +77,7 @@ class PttScraper(requests.Session):
         url : URL to fetch
         """
         try:
-            res = self.get(url)
+            res = self.session.get(url)
             self.html = res.text
             self.url = url
         except:
@@ -98,8 +99,8 @@ class PttScraper(requests.Session):
         date = self.meta.get('date')
         self.meta.update({
             'author': re.sub(r'\s\(.*$', '', author if author else ''),
-            'date': time.strftime('%Y-%m-%d', \
-                time.strptime(date, '%a %b %d %X %Y')) if date else '',
+            'date': datetime.strptime(date, '%a %b %d %X %Y').\
+                strftime('%Y-%m-%d') if date else '',
             'article_type': 'news',
             'source': 'PTT',
             'gender': '',
@@ -170,6 +171,35 @@ class PttScraper(requests.Session):
                 content = content.replace(k, v)
 
         return content.strip()
+
+class PTTMongo(PttScraper):
+    def __init__(self):
+        super().__init__()
+        self.meta = {
+            'media': '',
+            'news_title': '',
+            'news_url': '',
+            'note': '',
+        }
+
+
+    def extract_content(self, doc):
+        self.content = doc.get('content', '')
+        return self.content
+
+    def extract_meta(self, doc):
+        self.meta.update({
+            'author': doc.get('author', ''),
+            'date': doc['post_time'].strftime('%Y-%m-%d'),
+            'ptt_url': doc.get('URL', ''),
+            'ptt_title': doc.get('title', ''),
+            'article_type': 'news',
+            'board': 'Gossiping',
+            'source': 'PTT',
+            'gender': '',
+            'age': '',
+        })
+        return self.meta
 
 class PttConnector(requests.Session):
     """
@@ -250,7 +280,7 @@ class Coder(Jieba):
 
     @staticmethod
     def multisplit(string, *delims, keep=0, maxsplit=0, flags=0):
-        """Multisplit version of re.split. 
+        """Multisplit version of re.split.
         A static method that providing spliting string with multiple delimiters
         and other features.
 

@@ -7,6 +7,9 @@ import os
 import sys
 import time
 
+from getpass import getuser, getpass
+from pymongo import MongoClient
+
 import scraper
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -27,13 +30,14 @@ def unique(seq):
     return [x for x in seq if not (x in seen or seen_add(x))]
 
 def main():
-    conn = scraper.PttConnector()
-    conn.crawl_links(8000, 99999999, 25, 2.5)
-    with open(os.path.join(CORPUS_PATH, PREFIX + '.links'), 'a') as f:
-        for link in conn.links:
-            print(link, file=f)
+    uri = 'mongodb://140.112.147.132:27017'
+    client = MongoClient(uri)
+    client.admin.authenticate(input('Username: '), getpass())
+    db = client.PTT
+    cursor = db.Gossiping.find({'title': {'$regex': r'^\[新聞\]'}}, \
+        {'comments': 0}).sort('post_time', -1)
 
-    parser = scraper.PttScraper()
+    parser = scraper.PTTMongo()
     coder = scraper.Coder()
 
     with open(os.path.join(CUR_PATH, 'idioms_4word.txt')) as f:
@@ -43,16 +47,13 @@ def main():
 
     count = len(glob.glob(os.path.join(CORPUS_PATH, PREFIX + '*.vrt')))
 
-    for url in conn.links:
-        if not count % 25:
-            time.sleep(2.5)
+    for doc in cursor:
         count += 1
         file = os.path.join(CORPUS_PATH, PREFIX + '-{:07d}.vrt'.format(count))
 
         try:
-            parser.fetch_html(url)
-            parser.extract_meta()
-            parser.extract_content()
+            parser.extract_content(doc)
+            parser.extract_meta(doc)
             parser.extract_news_meta()
             parser.content = parser.clean(parser.content, True, True, True)
         except:
