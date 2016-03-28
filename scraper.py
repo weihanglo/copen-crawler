@@ -44,19 +44,19 @@ class PttScraper(object):
 
     """
 
-    _re_meta = re.compile(r"""
+    _re_meta = re.compile(u"""
         meta-tag">(.*?)</span>
         (?:.|\s)+?meta-value">
         (.*?)</span>
         """, re.VERBOSE | re.UNICODE)
-    _re_content = re.compile(r"""
+    _re_content = re.compile(u"""
         <div\sid="main-content".*meta-value">
         .*?</div>
         (.*?)
         (?:\n-+?\n.*?)?
         -+?\n.*?<span[^>]*>※\s發信站
         """, re.DOTALL | re.VERBOSE | re.UNICODE)
-    _re_news_meta_in_content = re.compile(r"""
+    _re_news_meta_in_content = re.compile(u"""
         \d\.媒體來源:                   (?P<media>.*)
         \d\.完整新聞標題:               (?P<news_title>.*)
         \d\.完整新聞內文:               (?P<news_content>.*)
@@ -98,7 +98,7 @@ class PttScraper(object):
         author = self.meta.get('author')
         date = self.meta.get('date')
         self.meta.update({
-            'author': re.sub(r'\s\(.*$', '', author if author else '', \
+            'author': re.sub(u'\s\(.*$', '', author if author else '', \
                 flags=re.UNICODE),
             'date': datetime.strptime(date, '%a %b %d %X %Y').\
                 strftime('%Y-%m-%d') if date else '',
@@ -125,7 +125,7 @@ class PttScraper(object):
             for k, v in matches.groupdict().items():
                 if v:
                     if k == 'news_url':
-                        url = re.search(r'(?<=href=").*?(?=")', v, flags=re.U)
+                        url = re.search(u'(?<=href=").*?(?=")', v, flags=re.U)
                         self.meta[k] = url.group() if url else ''
                     elif k == 'news_content':
                         self.content = v if v else self.content
@@ -164,9 +164,9 @@ class PttScraper(object):
         }
 
         if tag:
-            content = re.sub(r'</?[^>]*>', '', content, flags=re.U)
+            content = re.sub(u'</?[^>]*>', '', content, flags=re.U)
         if url:
-            content = re.sub(r'https?://\S+', '', content, flags=re.U)
+            content = re.sub(u'https?://\S+', '', content, flags=re.U)
         if html_char:
             for k, v in html_chars.items():
                 content = content.replace(k, v)
@@ -187,11 +187,11 @@ class PttMongo(PttScraper):
     def extract_content(self, doc):
         self.content = doc.get('content', '')
         return self.content
-
+#.strftime('%Y-%m-%d'),
     def extract_meta(self, doc):
         self.meta.update({
             'author': doc.get('author', ''),
-            'date': doc['post_time'].strftime('%Y-%m-%d'),
+            'date': doc['post_time'],
             'ptt_url': doc.get('URL', ''),
             'ptt_title': doc.get('title', ''),
             'article_type': 'news',
@@ -225,7 +225,7 @@ class PttConnector(requests.Session):
             dom = PyQuery(res.text)
             a_tags = dom(self._css_selector)
             links = [self._baseurl + a.attrib['href'] \
-                for a in a_tags if re.match(r'^\[新聞]', a.text, re.U)]
+                for a in a_tags if re.match(u'^\[新聞]', a.text, re.U)]
             self.links.extend(links)
             nlinks = len(links)
         except:
@@ -368,10 +368,10 @@ class Coder(Jieba):
     def _split_sentence(self, content, sent_sep=None):
         if sent_sep:
             content = [self.multisplit(p, *sent_sep, keep=1) \
-                    for p in re.split(r'\n\n+', content, flags=re.U)]
+                    for p in re.split(u'\n\n+', content, flags=re.U)]
         else:
             content = [p.splitlines() for p \
-                in re.split(r'\n\n+', content, flags=re.U)]
+                in re.split(u'\n\n+', content, flags=re.U)]
         return content
 
     def print_vrt(self, content, meta, sent_sep=None, file=None):
