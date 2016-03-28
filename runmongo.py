@@ -37,7 +37,7 @@ def main():
     cursor = db.Gossiping.find({'title': {'$regex': r'^\[新聞\]'}}, \
         {'comments': 0}).sort('post_time', -1)
 
-    parser = scraper.PTTMongo()
+    parser = scraper.PttMongo()
     coder = scraper.Coder()
 
     with open(os.path.join(CUR_PATH, 'idioms_4word.txt')) as f:

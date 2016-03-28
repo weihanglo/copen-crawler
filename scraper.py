@@ -48,21 +48,21 @@ class PttScraper(object):
         meta-tag">(.*?)</span>
         (?:.|\s)+?meta-value">
         (.*?)</span>
-        """, re.VERBOSE)
+        """, re.VERBOSE | re.UNICODE)
     _re_content = re.compile(r"""
         <div\sid="main-content".*meta-value">
         .*?</div>
         (.*?)
         (?:\n-+?\n.*?)?
         -+?\n.*?<span[^>]*>※\s發信站
-        """, re.DOTALL | re.VERBOSE)
+        """, re.DOTALL | re.VERBOSE | re.UNICODE)
     _re_news_meta_in_content = re.compile(r"""
         \d\.媒體來源:                   (?P<media>.*)
         \d\.完整新聞標題:               (?P<news_title>.*)
         \d\.完整新聞內文:               (?P<news_content>.*)
         \d\.完整新聞連結\s\(或短網址\): (?P<news_url>.*?)
         (\d\.備註:                      (?P<note>.*))?$
-        """, re.DOTALL | re.VERBOSE)
+        """, re.DOTALL | re.VERBOSE | re.UNICODE)
 
     def __init__(self):
         self.session = requests.Session()
@@ -98,7 +98,8 @@ class PttScraper(object):
         author = self.meta.get('author')
         date = self.meta.get('date')
         self.meta.update({
-            'author': re.sub(r'\s\(.*$', '', author if author else ''),
+            'author': re.sub(r'\s\(.*$', '', author if author else '', \
+                flags=re.UNICODE),
             'date': datetime.strptime(date, '%a %b %d %X %Y').\
                 strftime('%Y-%m-%d') if date else '',
             'article_type': 'news',
@@ -124,7 +125,7 @@ class PttScraper(object):
             for k, v in matches.groupdict().items():
                 if v:
                     if k == 'news_url':
-                        url = re.search(r'(?<=href=").*?(?=")', v)
+                        url = re.search(r'(?<=href=").*?(?=")', v, flags=re.U)
                         self.meta[k] = url.group() if url else ''
                     elif k == 'news_content':
                         self.content = v if v else self.content
@@ -163,9 +164,9 @@ class PttScraper(object):
         }
 
         if tag:
-            content = re.sub(r'</?[^>]*>', '', content)
+            content = re.sub(r'</?[^>]*>', '', content, flags=re.U)
         if url:
-            content = re.sub(r'https?://\S+', '', content)
+            content = re.sub(r'https?://\S+', '', content, flags=re.U)
         if html_char:
             for k, v in html_chars.items():
                 content = content.replace(k, v)
@@ -174,7 +175,7 @@ class PttScraper(object):
 
 class PttMongo(PttScraper):
     def __init__(self):
-        super(PTTMongo, self).__init__()
+        super(PttMongo, self).__init__()
         self.meta = {
             'media': '',
             'news_title': '',
@@ -224,7 +225,7 @@ class PttConnector(requests.Session):
             dom = PyQuery(res.text)
             a_tags = dom(self._css_selector)
             links = [self._baseurl + a.attrib['href'] \
-                for a in a_tags if re.match(r'^\[新聞]', a.text)]
+                for a in a_tags if re.match(r'^\[新聞]', a.text, re.U)]
             self.links.extend(links)
             nlinks = len(links)
         except:
@@ -279,7 +280,7 @@ class Coder(Jieba):
         super(Coder, self).__init__(*args, **kwargs)
 
     @staticmethod
-    def multisplit(string, keep=0, maxsplit=0, flags=0, *delims):
+    def multisplit(string, keep=0, maxsplit=0, flags=re.U, *delims):
         """Multisplit version of re.split.
         A static method that providing spliting string with multiple delimiters
         and other features.
@@ -340,11 +341,11 @@ class Coder(Jieba):
 
         if keep == 1:
             for i, d in enumerate(splitted):
-                if d in delims or re.fullmatch(pattern, d):
+                if d in delims or re.fullmatch(pattern, d, re.U):
                     splitted[i - 1] = splitted[i - 1] + splitted.pop(i)
         elif keep == 2:
             for i, d in enumerate(splitted):
-                if d in delims or re.fullmatch(pattern, d):
+                if d in delims or re.fullmatch(pattern, d, re.U):
                     splitted[i] = splitted[i] + splitted.pop(i + 1)
 
         return splitted
@@ -358,7 +359,7 @@ class Coder(Jieba):
         return meta_tag
 
     def _seg_sentence(self, sentence, pos):
-        seg_result = self.seg(re.sub('\n+', ' ', sentence), pos)
+        seg_result = self.seg(re.sub('\n+', ' ', sentence, flags=re.U), pos)
         sentence = '\n'.join(['\t'.join(token) for token in seg_result.raw])
         sentence_tag = '<s>\n{}\n</s>'.format(sentence)
 
@@ -367,9 +368,10 @@ class Coder(Jieba):
     def _split_sentence(self, content, sent_sep=None):
         if sent_sep:
             content = [self.multisplit(p, *sent_sep, keep=1) \
-                    for p in re.split(r'\n\n+', content)]
+                    for p in re.split(r'\n\n+', content, flags=re.U)]
         else:
-            content = [p.splitlines() for p in re.split(r'\n\n+', content)]
+            content = [p.splitlines() for p \
+                in re.split(r'\n\n+', content, flags=re.U)]
         return content
 
     def print_vrt(self, content, meta, sent_sep=None, file=None):
@@ -398,7 +400,8 @@ class Coder(Jieba):
 
     def summary(self, content, file=None):
         if content:
-            tokens = self.seg(re.sub('\n+', ' ', content), False).raw
+            tokens = self.seg(re.sub('\n+', ' ', content, flags=re.U), \
+                False).raw
             types = set(tokens)
             counter = Counter(tokens)
             wfqtable = sorted(counter.items(), key=itemgetter(1), reverse=True)
