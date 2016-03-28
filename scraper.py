@@ -172,9 +172,9 @@ class PttScraper(object):
 
         return content.strip()
 
-class PTTMongo(PttScraper):
+class PttMongo(PttScraper):
     def __init__(self):
-        super(PTTMongo, self).__init__()
+        super(PttMongo, self).__init__()
         self.meta = {
             'media': '',
             'news_title': '',
