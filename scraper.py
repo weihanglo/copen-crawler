@@ -174,6 +174,13 @@ class PttScraper(object):
         return content.strip()
 
 class PttMongo(PttScraper):
+    _re_news_meta_in_content = re.compile(u"""
+        \d\.媒體來源:                   (?P<media>.*)
+        \d\.完整新聞標題:               (?P<news_title>.*)
+        \d\.完整新聞內文:               (?P<news_content>.*?)
+        (?:\d\.完整新聞連結\s\(或短網址\):)?$
+        """, re.DOTALL | re.VERBOSE | re.UNICODE)
+
     def __init__(self):
         super(PttMongo, self).__init__()
         self.meta = {
