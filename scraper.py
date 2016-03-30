@@ -183,7 +183,6 @@ class PttMongo(PttScraper):
             'note': '',
         }
 
-
     def extract_content(self, doc):
         self.content = doc.get('content', '')
         return self.content
@@ -366,7 +365,7 @@ class Coder:
 
     def _split_sentence(self, content, sent_sep=None):
         if sent_sep:
-            content = [self.multisplit(p, sent_sep, regex=False, keep=1, \
+            content = [self.multisplit(p, sent_sep, regex=True, keep=1, \
                 flags=re.U) for p in re.split(u'\n\n+', content, flags=re.U)]
         else:
             content = [p.splitlines() for p \

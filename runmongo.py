@@ -67,7 +67,9 @@ def main():
 
         if found:
             coder.print_vrt(parser.content, parser.meta, sent_sep, file)
-            coder.summary(parser.content, file.replace('.vrt', '.json'))
+#            coder.summary(parser.content, file.replace('.vrt', '.json'))
+            with open(file.replace('.vrt', '.txt'), 'w') as f:
+                f.write(parser.content.encode('utf8'))
         else:
             count -= 1
 
