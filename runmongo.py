@@ -16,7 +16,7 @@ CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 PREFIX = 'PTT_News'
 
 CORPUS_PATH = os.path.join(CUR_PATH, PREFIX)
-os.makedirs(CORPUS_PATH, exist_ok=True)
+os.makedirs(CORPUS_PATH)
 
 fh = logging.FileHandler(os.path.join(CORPUS_PATH, PREFIX + '.log'))
 fh.setLevel(logging.DEBUG)
@@ -32,18 +32,18 @@ def unique(seq):
 def main():
     uri = 'mongodb://140.112.147.132:27017'
     client = MongoClient(uri)
-    client.admin.authenticate(input('Username: '), getpass())
+    client.admin.authenticate(raw_input('Username: '), getpass())
     db = client.PTT
-    cursor = db.Gossiping.find({'title': {'$regex': r'^\[新聞\]'}}, \
+    cursor = db.Gossiping.find({'title': {'$regex': u'^\[新聞\]'}}, \
         {'comments': 0}).sort('post_time', -1)
 
     parser = scraper.PttMongo()
     coder = scraper.Coder()
 
     with open(os.path.join(CUR_PATH, 'idioms_4word.txt')) as f:
-        idioms = f.read().splitlines()
-    coder.add_guaranteed_wordlist(idioms)
-    sent_sep = [True, '。」?', '？」?', '！」?']
+        idioms = f.read().decode('utf8').splitlines()
+    coder.jieba.add_guaranteed_wordlist(idioms)
+    sent_sep = [u'。」?', u'？」?', u'！」?']
 
     count = len(glob.glob(os.path.join(CORPUS_PATH, PREFIX + '*.vrt')))
 
@@ -57,8 +57,7 @@ def main():
             parser.extract_news_meta()
             parser.content = parser.clean(parser.content, True, True, True)
         except:
-            logger.error('Unexpected error while parsing: {}'.\
-                format(sys.exc_info()))
+            logger.error('Error while parsing: {}'.format(sys.exc_info()))
 
         found = False
         for idiom in idioms:
@@ -67,12 +66,8 @@ def main():
                 break
 
         if found:
-            try:
-                coder.print_vrt(parser.content, parser.meta, sent_sep, file)
-                coder.summary(parser.content, file.replace('.vrt', '.json'))
-            except:
-                logger.error('Unexpected error while coding: {}'.\
-                    format(sys.exc_info()))
+            coder.print_vrt(parser.content, parser.meta, sent_sep, file)
+            coder.summary(parser.content, file.replace('.vrt', '.json'))
         else:
             count -= 1
 

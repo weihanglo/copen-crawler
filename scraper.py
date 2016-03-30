@@ -156,11 +156,11 @@ class PttScraper(object):
             To replace html escape characters with unicode characters.
         """
         html_chars = {
-            '&amp;': '&',
-            '&lt;': '<',
-            '&gt;': '>',
-            '&quot;': '"',
-            '&#39;': '\'',
+            u'&amp;': '&',
+            u'&lt;': '<',
+            u'&gt;': '>',
+            u'&quot;': '"',
+            u'&#39;': '\'',
         }
 
         if tag:
@@ -187,11 +187,11 @@ class PttMongo(PttScraper):
     def extract_content(self, doc):
         self.content = doc.get('content', '')
         return self.content
-#.strftime('%Y-%m-%d'),
+
     def extract_meta(self, doc):
         self.meta.update({
             'author': doc.get('author', ''),
-            'date': doc['post_time'],
+            'date': doc['post_time'].strftime('%Y-%m-%d'),
             'ptt_url': doc.get('URL', ''),
             'ptt_title': doc.get('title', ''),
             'article_type': 'news',
@@ -255,7 +255,7 @@ class PttConnector(requests.Session):
                     format(len(self.links)))
                 break
 
-class Coder(Jieba):
+class Coder:
     """
     Usage::
         content = '''
@@ -276,11 +276,11 @@ class Coder(Jieba):
         coder.summary(content, 'demo.json')
 
     """
-    def __init__(self, *args, **kwargs):
-        super(Coder, self).__init__(*args, **kwargs)
+    def __init__(self, load_ptt_dict=False):
+        self.jieba = Jieba(load_ptt_dict)
 
     @staticmethod
-    def multisplit(string, keep=0, maxsplit=0, flags=re.U, *delims):
+    def multisplit(string, delims, regex, keep, maxsplit=0, flags=0):
         """Multisplit version of re.split.
         A static method that providing spliting string with multiple delimiters
         and other features.
@@ -289,10 +289,11 @@ class Coder(Jieba):
         ----------
         string : str
             String to split.
-        *delims : str, list of str
+        delims : list of str
             Different delimiters. All characters or strings will be treated as
-            escaped characters. If you need to write your own regex, assign the
-            first element to a ``True`` boolean value.
+            escaped characters. 
+        regex : bool
+            ``True`` if you need to write your own regex.
         keep : {0, 1, 2}
             Delimieter keeping level.
             `0` for splitting with removal.
@@ -315,37 +316,34 @@ class Coder(Jieba):
 
         All delimiters escaped and keeped at level 1::
 
-            >>> Coder.multisplit(string, '?', '!', keep=1)
+            >>> Coder.multisplit(string, ['?', '!'], regex=False, keep=1)
             ['?', 'How?', '?', ' Good. "Wow!', ' Cool!', '"']
 
         Delimiters contained regex::
 
-            >>> Coder.multisplit(string, True, '\?+', '\!"?', keep=1)
+            >>> Coder.multisplit(string, ['\?+', '\!"?'], regex=True, keep=1)
             ['?', 'How??', ' Good. "Wow!', ' Cool!"', '']
 
         Delimiters keeped at level 2 and containing regex::
 
-            >>> Coder.multisplit(string, True, '\?+', '\!"?', keep=2)
+            >>> Coder.multisplit(string, ['\?+', '\!"?'], regex=True, keep=2)
             ['', '?How', '?? Good. "Wow', '! Cool', '!"']
         """
 
-        if delims[0] is True:
-            pattern = '|'.join(delims[1:])
-        else:
-            pattern = '|'.join([re.escape(s) for s in delims])
+        pattern = u'|'.join(delims if regex else [re.escape(s) for s in delims])
 
         if keep:
-            pattern = '({})'.format(pattern)
+            pattern = u'({})'.format(pattern)
 
         splitted = re.split(pattern, string, maxsplit, flags)
 
         if keep == 1:
             for i, d in enumerate(splitted):
-                if d in delims or re.fullmatch(pattern, d, re.U):
+                if re.match(u'{}\Z'.format(pattern), d, flags):
                     splitted[i - 1] = splitted[i - 1] + splitted.pop(i)
         elif keep == 2:
             for i, d in enumerate(splitted):
-                if d in delims or re.fullmatch(pattern, d, re.U):
+                if re.match(u'{}\Z'.format(pattern), d, flags):
                     splitted[i] = splitted[i] + splitted.pop(i + 1)
 
         return splitted
@@ -353,22 +351,23 @@ class Coder(Jieba):
     def _generate_metatag(self, meta, file=None):
         if file:
             meta['id'] = os.path.basename(file)
-        meta_tag = '<text {}>'.format(' '.join(['{}="{}"'.\
+
+        meta_tag = u'<text {}>'.format(u' '.join([u'{}="{}"'.\
             format(k, v) for k, v in meta.items()]))
 
         return meta_tag
 
-    def _seg_sentence(self, sentence, pos):
-        seg_result = self.seg(re.sub('\n+', ' ', sentence, flags=re.U), pos)
-        sentence = '\n'.join(['\t'.join(token) for token in seg_result.raw])
-        sentence_tag = '<s>\n{}\n</s>'.format(sentence)
+    def _seg_sentence(self, sentence):
+        seg_result = self.jieba.seg(re.sub(u'\n+', u' ', sentence, flags=re.U))
+        sentence = u'\n'.join([u'\t'.join(token) for token in seg_result.raw])
+        sentence_tag = u'<s>\n{}\n</s>'.format(sentence)
 
         return sentence_tag
 
     def _split_sentence(self, content, sent_sep=None):
         if sent_sep:
-            content = [self.multisplit(p, *sent_sep, keep=1) \
-                    for p in re.split(u'\n\n+', content, flags=re.U)]
+            content = [self.multisplit(p, sent_sep, regex=False, keep=1, \
+                flags=re.U) for p in re.split(u'\n\n+', content, flags=re.U)]
         else:
             content = [p.splitlines() for p \
                 in re.split(u'\n\n+', content, flags=re.U)]
@@ -378,21 +377,21 @@ class Coder(Jieba):
 
         buffer = io.StringIO()
         buffer.write(self._generate_metatag(meta, file))
-        buffer.write('\n')
+        buffer.write(u'\n')
 
         for paragraph in self._split_sentence(content, sent_sep):
             if paragraph:
-                buffer.write('<p>\n')
+                buffer.write(u'<p>\n')
                 for sentence in paragraph:
                     if sentence.strip():
-                        buffer.write(self._seg_sentence(sentence, True))
-                        buffer.write('\n')
-                buffer.write('</p>\n')
-        buffer.write('</text>')
+                        buffer.write(self._seg_sentence(sentence))
+                        buffer.write(u'\n')
+                buffer.write(u'</p>\n')
+        buffer.write(u'</text>')
 
         if file:
             with open(file, 'w') as f:
-                f.write(buffer.getvalue())
+                f.write(buffer.getvalue().encode('utf8'))
                 logger.info('Created vrt document at {}'.\
                     format(os.path.basename(file)))
         else:
@@ -400,8 +399,9 @@ class Coder(Jieba):
 
     def summary(self, content, file=None):
         if content:
-            tokens = self.seg(re.sub('\n+', ' ', content, flags=re.U), \
-                False).raw
+            tokens = self.jieba.seg(re.sub\
+                (u'\n+', ' ', content, flags=re.U)).raw
+            tokens = [token[0] for token in tokens]
             types = set(tokens)
             counter = Counter(tokens)
             wfqtable = sorted(counter.items(), key=itemgetter(1), reverse=True)
